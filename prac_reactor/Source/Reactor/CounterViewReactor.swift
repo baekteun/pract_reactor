@@ -52,6 +52,19 @@ class CounterViewReactor: Reactor{
             ])
         }
     }
-    
+    func reduce(state: State, mutation: Mutation) -> State {
+        var state = state
+        switch mutation {
+        case .increaseValue:
+            state.value += 1
+        case .decreaseValue:
+            state.value -= 1
+        case .setLoading(let bool):
+            state.isLoading = bool
+        case .setAlertMessage(let string):
+            state.aleartMessage = string
+        }
+        return state
+    }
     
 }
