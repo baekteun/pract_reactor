@@ -9,6 +9,8 @@ import UIKit
 import Then
 import SnapKit
 import ReactorKit
+import RxSwift
+import RxCocoa
 
 class CounterVC: baseVC, View{
     // MARK: - Properties
@@ -40,7 +42,9 @@ class CounterVC: baseVC, View{
     
     // MARK: - Helpers
     override func configureVC() {
-        
+        super.configureVC()
+        addView()
+        setLayout()
     }
     private func addView(){
         [valueLabel, increaseButton, decreaseButton, activityBar].forEach{view.addSubview($0)}
@@ -51,14 +55,46 @@ class CounterVC: baseVC, View{
         }
         increaseButton.snp.makeConstraints {
             $0.top.equalTo(valueLabel.snp.bottom).offset(10)
-            $0.right.equalTo(valueLabel.snp.left).inset(20)
+            $0.right.equalTo(valueLabel.snp.left).offset(-20)
         }
         decreaseButton.snp.makeConstraints {
             $0.top.equalTo(valueLabel.snp.bottom).offset(10)
             $0.left.equalTo(valueLabel.snp.right).offset(20)
         }
+        
+        activityBar.center = self.view.center 
     }
     func bind(reactor: CounterViewReactor) {
+        increaseButton.rx.tap
+            .map{Reactor.Action.increase}
+            .bind(to: reactor.action)
+            .disposed(by: disposeBag)
         
+        decreaseButton.rx.tap
+            .map{Reactor.Action.decrease}
+            .bind(to: reactor.action)
+            .disposed(by: disposeBag)
+        
+        reactor.state
+            .map{$0.value}
+            .distinctUntilChanged()
+            .map{ "\($0)"}
+            .bind(to: valueLabel.rx.text)
+            .disposed(by: disposeBag)
+        
+        reactor.state
+            .map{$0.isLoading}
+            .distinctUntilChanged()
+            .bind(to: activityBar.rx.isAnimating)
+            .disposed(by: disposeBag)
+        
+        reactor.pulse(\.$aleartMessage)
+            .compactMap{ $0 }
+            .subscribe(onNext: { [weak self] text in
+                let alert = UIAlertController(title: nil, message: text, preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+                self?.present(alert, animated: true)
+            })
+            .disposed(by: disposeBag)
     }
 }
